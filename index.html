@@ -112,7 +112,13 @@
     <button id="startButton" onclick="toggleGame()">Iniciar juego</button>
   </div>
 
-  <div id="gameContainer">
+  <div id="mobileControls" style="display: none; justify-content: center; gap: 10px; margin-bottom: 10px;">
+  <button onclick="moveMobile('left')">⬅️</button>
+  <button onclick="moveMobile('down')">⬇️</button>
+  <button onclick="moveMobile('right')">➡️</button>
+</div>
+
+<div id="gameContainer">
     <div id="gameBoard"></div>
     <div id="statusLine">Puntos: <span id="score">0</span> | Nivel: <span id="level">1</span> | Tiempo: <span id="timer">0s</span></div>
     <div id="soundControl">
@@ -370,6 +376,30 @@
         s.currentTime = 0;
       });
     }, { once: true });
-  </script>
+    function moveMobile(direction) {
+    if (!fallingPiece || !isPlaying) return;
+    if (direction === 'left') {
+      const newCol = fallingPiece.col - 1;
+      if (newCol >= 0 && !board[fallingPiece.row][newCol].piece) {
+        fallingPiece.col = newCol;
+        updateBoard();
+      }
+    }
+    if (direction === 'right') {
+      const newCol = fallingPiece.col + 1;
+      if (newCol < columns && !board[fallingPiece.row][newCol].piece) {
+        fallingPiece.col = newCol;
+        updateBoard();
+      }
+    }
+    if (direction === 'down') {
+      movePieceDown();
+    }
+  }
+
+  if (window.innerWidth <= 768) {
+    document.getElementById('mobileControls').style.display = 'flex';
+  }
+</script>
 </body>
 </html>
