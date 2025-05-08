@@ -112,14 +112,13 @@
     <button id="startButton" onclick="toggleGame()">Iniciar juego</button>
   </div>
 
-  <div id="mobileControls" style="display: none; justify-content: center; gap: 10px; margin-bottom: 10px;">
-  <button onclick="moveMobile('left')">⬅️</button>
-  <button onclick="moveMobile('down')">⬇️</button>
-  <button onclick="moveMobile('right')">➡️</button>
-</div>
-
-<div id="gameContainer">
+  <div id="gameContainer">
     <div id="gameBoard"></div>
+    <div id="mobileControls" style="display: none; position: relative; bottom: 0; width: 100%; padding: 6px 0; background: #ffffffcc; display: flex; justify-content: center; gap: 10px;">
+      <button onclick="moveMobile('left')">⬅️</button>
+      <button onclick="moveMobile('down')">⬇️</button>
+      <button onclick="moveMobile('right')">➡️</button>
+    </div>
     <div id="statusLine">Puntos: <span id="score">0</span> | Nivel: <span id="level">1</span> | Tiempo: <span id="timer">0s</span></div>
     <div id="soundControl">
       <button id="toggleSound">🔊 Sonido activado</button>
@@ -398,8 +397,8 @@
   }
 
   if (window.innerWidth <= 768) {
-    document.getElementById('mobileControls').style.display = 'flex';
-  }
+  document.getElementById('mobileControls').style.display = 'flex';
+}
 </script>
 </body>
 </html>
