@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FractoMatch - El Juego del Equilibrio Mental</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body {
+      margin: 0;
+      background-color: #e0f7fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin: 10px 0;
+      text-align: center;
+      color: #333;
+    }
+    #gameInfo {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 360px;
+      background: #ffffffaa;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 10px;
+    }
+    #gameBoard {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-auto-rows: min(10vw, 40px);
+      gap: 4px;
+      background-color: #f0f0f0;
+      padding: 10px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 360px;
+    }
+    .cell {
+      width: 100%;
+      height: 100%;
+      background-color: #ffffff;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    .piece {
+      color: white;
+      font-weight: bold;
+    }
+    #panel {
+      text-align: center;
+      margin-top: 15px;
+      width: 100%;
+      max-width: 360px;
+    }
+    #score, #level, #timer, #record {
+      font-size: 1rem;
+      color: #444;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #7e57c2;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #5e35b1;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 FractoMatch</h1>
+  <div id="gameInfo">
+    <span><strong>¡Un reto a tu destreza!</strong></span>
+    <button onclick="startGame();">Nuevo juego</button>
+  </div>
+  <div id="gameBoard"></div>
+  <div id="panel">
+    <div><span id="score">Puntuación: 0</span> | <span id="level">Nivel: 1</span> | <span id="timer">Tiempo: 0s</span></div>
+    <div id="record">🏆 Récord: 0 pts en 0s</div>
+    <button id="toggleSound" style="margin-top: 10px; font-size: 0.8rem; background: #ccc; color: #333;">🔊 Sonido activado</button>
+  </div>
+
+  <!-- Sonidos -->
+  <audio id="fallSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_7c5939f7d5.mp3?filename=click-124467.mp3"></audio>
+  <audio id="matchSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_59a2349c29.mp3?filename=correct-2-46134.mp3"></audio>
+  <audio id="gameOverSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_9fca8b3a4d.mp3?filename=wrong-2-46091.mp3"></audio>
+
+  <script>
+    const columns = 6;
+const rows = 12;
+let board = [];
+let score = 0, level = 1, time = 0;
+let fallSpeed = 500;
+let fallingPiece = null;
+let fallInterval, timeInterval;
+
+const gameBoard = document.getElementById('gameBoard');
+const scoreDisplay = document.getElementById('score');
+const levelDisplay = document.getElementById('level');
+const timerDisplay = document.getElementById('timer');
+const recordDisplay = document.getElementById('record');
+const fallSound = document.getElementById('fallSound');
+const matchSound = document.getElementById('matchSound');
+const gameOverSound = document.getElementById('gameOverSound');
+const toggleSoundBtn = document.getElementById('toggleSound');
+let soundEnabled = true;
+
+const pieceTypes = [
+  { symbol: '+', color: '#42a5f5' },
+  { symbol: '-', color: '#ef5350' },
+  { symbol: '×', color: '#66bb6a' },
+  { symbol: '÷', color: '#ffa726' },
+  { symbol: '√', color: '#ab47bc' },
+  { symbol: 'π', color: '#26a69a' }
+];
+
+function createBoard() {
+  gameBoard.innerHTML = '';
+  board = [];
+  for (let r = 0; r < rows; r++) {
+    const row = [];
+    for (let c = 0; c < columns; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      gameBoard.appendChild(cell);
+      row.push({ element: cell, piece: null });
+    }
+    board.push(row);
+  }
+}
+
+function startGame() {
+  score = 0;
+  level = 1;
+  time = 0;
+  fallSpeed = 500;
+  clearInterval(fallInterval);
+  clearInterval(timeInterval);
+  createBoard();
+  updateUI();
+  fallingPiece = null;
+  fallInterval = setInterval(gameLoop, fallSpeed);
+  timeInterval = setInterval(() => {
+    time++;
+    timerDisplay.textContent = `Tiempo: ${time}s`;
+  }, 1000);
+}
+
+function gameLoop() {
+  if (!fallingPiece) spawnPiece();
+  else movePieceDown();
+}
+
+function spawnPiece() {
+  const col = Math.floor(columns / 2);
+  const type = pieceTypes[Math.floor(Math.random() * pieceTypes.length)];
+  if (board[0][col].piece) return gameOver();
+  fallingPiece = { row: 0, col, type };
+  updateBoard();
+}
+
+function movePieceDown() {
+  const { row, col } = fallingPiece;
+  if (row + 1 >= rows || board[row + 1][col].piece) {
+    board[row][col].piece = fallingPiece.type;
+    if (soundEnabled) fallSound.play();
+    fallingPiece = null;
+    checkMatches();
+    return;
+  }
+  fallingPiece.row++;
+  updateBoard();
+}
+
+function movePiece(dir) {
+  if (!fallingPiece) return;
+  let newCol = fallingPiece.col + (dir === 'left' ? -1 : 1);
+  if (newCol < 0 || newCol >= columns) return;
+  if (board[fallingPiece.row][newCol].piece) return;
+  fallingPiece.col = newCol;
+  updateBoard();
+}
+
+function updateBoard() {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < columns; c++) {
+      const cell = board[r][c].element;
+      const piece = board[r][c].piece;
+      cell.textContent = '';
+      cell.className = 'cell';
+      cell.style.backgroundColor = '#fff';
+      if (piece) {
+        cell.textContent = piece.symbol;
+        cell.classList.add('piece');
+        cell.style.backgroundColor = piece.color;
+      }
+    }
+  }
+  if (fallingPiece) {
+    const { row, col, type } = fallingPiece;
+    const cell = board[row][col].element;
+    cell.textContent = type.symbol;
+    cell.classList.add('piece');
+    cell.style.backgroundColor = type.color;
+  }
+}
+
+function checkMatches() {
+  let toRemove = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < columns - 2; c++) {
+      const p1 = board[r][c].piece, p2 = board[r][c+1].piece, p3 = board[r][c+2].piece;
+      if (p1 && p2 && p3 && p1.symbol === p2.symbol && p2.symbol === p3.symbol)
+        toRemove.push([r, c], [r, c+1], [r, c+2]);
+    }
+  }
+  for (let c = 0; c < columns; c++) {
+    for (let r = 0; r < rows - 2; r++) {
+      const p1 = board[r][c].piece, p2 = board[r+1][c].piece, p3 = board[r+2][c].piece;
+      if (p1 && p2 && p3 && p1.symbol === p2.symbol && p2.symbol === p3.symbol)
+        toRemove.push([r, c], [r+1, c], [r+2, c]);
+    }
+  }
+  if (toRemove.length > 0) {
+    if (soundEnabled) matchSound.play();
+    let unique = [...new Set(toRemove.map(JSON.stringify))].map(JSON.parse);
+    unique.forEach(([r, c]) => { board[r][c].piece = null; });
+    score += unique.length * 10;
+    updateUI();
+    checkLevelUp();
+    setTimeout(() => { applyGravity(); updateBoard(); }, 200);
+  }
+}
+
+function applyGravity() {
+  for (let c = 0; c < columns; c++) {
+    for (let r = rows - 1; r >= 0; r--) {
+      if (!board[r][c].piece) {
+        for (let k = r - 1; k >= 0; k--) {
+          if (board[k][c].piece) {
+            board[r][c].piece = board[k][c].piece;
+            board[k][c].piece = null;
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+function updateUI() {
+  scoreDisplay.textContent = `Puntuación: ${score}`;
+  levelDisplay.textContent = `Nivel: ${level}`;
+}
+
+function checkLevelUp() {
+  let newLevel = Math.floor(score / 100) + 1;
+  if (newLevel > level) {
+    level = newLevel;
+    fallSpeed = Math.max(250, 500 - (level - 1) * 25);
+    clearInterval(fallInterval);
+    fallInterval = setInterval(gameLoop, fallSpeed);
+    updateUI();
+  }
+}
+
+function gameOver() {
+  clearInterval(fallInterval);
+  clearInterval(timeInterval);
+  if (soundEnabled) gameOverSound.play();
+  alert(`¡Juego terminado! Tu puntuación: ${score} en ${time}s`);
+  saveRecord(score, time);
+}
+
+function saveRecord(currentScore, currentTime) {
+  const record = JSON.parse(localStorage.getItem('fractomatch_record')) || { score: 0, time: 0 };
+  if (currentScore > record.score || (currentScore === record.score && currentTime < record.time)) {
+    localStorage.setItem('fractomatch_record', JSON.stringify({ score: currentScore, time: currentTime }));
+    loadRecord();
+  }
+}
+
+function loadRecord() {
+  const record = JSON.parse(localStorage.getItem('fractomatch_record')) || { score: 0, time: 0 };
+  recordDisplay.textContent = `🏆 Récord: ${record.score} pts en ${record.time}s`;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') movePiece('left');
+  if (e.key === 'ArrowRight') movePiece('right');
+  if (e.key === 'ArrowDown') movePieceDown();
+});
+
+toggleSoundBtn.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  toggleSoundBtn.textContent = soundEnabled ? '🔊 Sonido activado' : '🔇 Sonido desactivado';
+});
+
+document.body.addEventListener('click', unlockAudio, { once: true });
+
+function unlockAudio() {
+  [fallSound, matchSound, gameOverSound].forEach(s => {
+    s.play().catch(() => {});
+    s.pause();
+    s.currentTime = 0;
+  });
+  soundEnabled = true;
+  toggleSoundBtn.textContent = '🔊 Sonido activado';
+}
+
+window.onload = () => {
+  createBoard();
+  loadRecord();
+};
+</script>
+</body>
+</html>
