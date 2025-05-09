@@ -68,6 +68,24 @@
       border-radius: 6px;
       cursor: pointer;
     }
+
+    #mobileControls button {
+      background: radial-gradient(circle at 30% 30%, #d0d3d4, #aab1b5);
+      border: 1px solid #888;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-size: 1.3rem;
+      color: #222;
+      box-shadow: inset 0 1px 3px rgba(255,255,255,0.6), 0 3px 6px rgba(0,0,0,0.3);
+      transition: all 0.2s ease-in-out;
+      background-image: repeating-radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 2px);
+      background-blend-mode: overlay;
+    }
+
+    #mobileControls button:active {
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
+      transform: scale(0.96);
+    }
     #gameInfo {
       display: flex;
       justify-content: space-between;
