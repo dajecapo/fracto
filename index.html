@@ -332,7 +332,7 @@
       let newLevel = Math.floor(score / 100) + 1;
       if (newLevel > level) {
         level = newLevel;
-        fallSpeed = Math.max(100, 500 - level * 20);
+        fallSpeed = Math.max(200, 400 - level * 10);
         clearInterval(fallInterval);
         fallInterval = setInterval(gameLoop, fallSpeed);
         updateUI();
