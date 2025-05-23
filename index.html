@@ -6,6 +6,7 @@
   <title>FractoMatch - El Juego del Equilibrio Mental</title>
   <style>
     * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
     body {
       margin: 0;
       background-color: #e0f7fa;
@@ -14,11 +15,24 @@
       align-items: center;
       padding: 20px;
     }
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
+
+    .titulo-juego {
+      font-size: 2.2rem;
       text-align: center;
+      margin-bottom: 20px;
+      padding: 14px 24px;
+      width: 100%;
+      max-width: 360px;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #ffffff, #dcdcdc);
+      box-shadow:
+        inset 2px 2px 5px rgba(255,255,255,0.6),
+        inset -2px -2px 5px rgba(0,0,0,0.1),
+        2px 2px 8px rgba(0,0,0,0.1);
+      color: #4a148c;
+      font-weight: bold;
     }
+
     #gameContainer {
       background: #fff;
       border: 2px solid #ccc;
@@ -28,6 +42,7 @@
       max-width: 360px;
       width: 100%;
     }
+
     #gameBoard {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
@@ -36,6 +51,7 @@
       background-color: #f0f0f0;
       padding: 10px;
     }
+
     .cell {
       background-color: #ffffff;
       border-radius: 4px;
@@ -44,10 +60,12 @@
       justify-content: center;
       font-size: 1.2rem;
     }
+
     .piece {
       color: white;
       font-weight: bold;
     }
+
     #statusLine {
       text-align: center;
       font-size: 0.85rem;
@@ -55,10 +73,12 @@
       padding: 6px 10px 2px;
       border-top: 2px solid #ccc;
     }
+
     #soundControl {
       text-align: center;
       padding: 2px 10px 10px;
     }
+
     #toggleSound {
       background-color: #ccc;
       color: #333;
@@ -86,6 +106,7 @@
       box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
       transform: scale(0.96);
     }
+
     #gameInfo {
       display: flex;
       justify-content: space-between;
@@ -98,6 +119,7 @@
       max-width: 360px;
       margin-bottom: 10px;
     }
+
     #startButton {
       padding: 8px 16px;
       font-size: 0.9rem;
@@ -107,9 +129,11 @@
       cursor: pointer;
       background-color: #7e57c2;
     }
+
     #startButton.parar {
       background-color: #d32f2f;
     }
+
     #levelTrophy {
       position: fixed;
       top: 40%;
@@ -124,7 +148,8 @@
   </style>
 </head>
 <body>
-  <h1>🎯 FractoMatch</h1>
+  <h1 class="titulo-juego">🎯 FractoMatch</h1>
+
   <div id="gameInfo">
     <span><strong>¡Un reto a tu destreza!</strong></span>
     <button id="startButton" onclick="toggleGame()">Iniciar juego</button>
@@ -132,12 +157,17 @@
 
   <div id="gameContainer">
     <div id="gameBoard"></div>
+
     <div id="mobileControls" style="display: none; position: relative; bottom: 0; width: 100%; padding: 6px 0; background: #ffffffcc; display: flex; justify-content: center; gap: 10px;">
       <button onclick="moveMobile('left')">⬅️</button>
       <button onclick="moveMobile('down')">⬇️</button>
       <button onclick="moveMobile('right')">➡️</button>
     </div>
-    <div id="statusLine">Puntos: <span id="score">0</span> | Nivel: <span id="level">1</span> | Tiempo: <span id="timer">0s</span></div>
+
+    <div id="statusLine">
+      Puntos: <span id="score">0</span> | Nivel: <span id="level">1</span> | Tiempo: <span id="timer">0s</span>
+    </div>
+
     <div id="soundControl">
       <button id="toggleSound">🔊 Sonido activado</button>
     </div>
@@ -145,276 +175,285 @@
 
   <div id="levelTrophy">🏆</div>
 
+  <!-- Audios del juego -->
   <audio id="fallSound" src="https://raw.githubusercontent.com/dajecapo/fracto/main/fall.mp3"></audio>
   <audio id="matchSound" src="https://raw.githubusercontent.com/dajecapo/fracto/main/match.mp3"></audio>
   <audio id="gameOverSound" src="https://raw.githubusercontent.com/dajecapo/fracto/main/gameover.mp3"></audio>
   <audio id="levelUpSound" src="https://raw.githubusercontent.com/dajecapo/fracto/main/nuevonivel.mp3"></audio>
+<script>
+let board = [];
+let fallingPiece = null;
+let score = 0, level = 1, time = 0;
+let fallInterval, timeInterval;
+let fallSpeed = 300;
+let isPlaying = false;
+let soundEnabled = true;
 
-  <script>
-    let board = [];
-    let fallingPiece = null;
-    let score = 0, level = 1, time = 0;
-    let fallInterval, timeInterval;
-    let fallSpeed = 500;
-    let isPlaying = false;
-    let soundEnabled = true;
+const columns = 6, rows = 12;
+const pieceTypes = [
+  { symbol: '+', color: '#42a5f5' },
+  { symbol: '-', color: '#ef5350' },
+  { symbol: '×', color: '#66bb6a' },
+  { symbol: '÷', color: '#ffa726' },
+  { symbol: '√', color: '#ab47bc' },
+  { symbol: 'π', color: '#26a69a' }
+];
 
-    const columns = 6, rows = 12;
-    const pieceTypes = [
-      { symbol: '+', color: '#42a5f5' },
-      { symbol: '-', color: '#ef5350' },
-      { symbol: '×', color: '#66bb6a' },
-      { symbol: '÷', color: '#ffa726' },
-      { symbol: '√', color: '#ab47bc' },
-      { symbol: 'π', color: '#26a69a' }
-    ];
+const gameBoard = document.getElementById('gameBoard');
+const scoreDisplay = document.getElementById('score');
+const levelDisplay = document.getElementById('level');
+const timerDisplay = document.getElementById('timer');
+const fallSound = document.getElementById('fallSound');
+const matchSound = document.getElementById('matchSound');
+const gameOverSound = document.getElementById('gameOverSound');
+const levelUpSound = document.getElementById('levelUpSound');
+const toggleSoundBtn = document.getElementById('toggleSound');
+const startButton = document.getElementById('startButton');
 
-    const gameBoard = document.getElementById('gameBoard');
-    const scoreDisplay = document.getElementById('score');
-    const levelDisplay = document.getElementById('level');
-    const timerDisplay = document.getElementById('timer');
-    const fallSound = document.getElementById('fallSound');
-    const matchSound = document.getElementById('matchSound');
-    const gameOverSound = document.getElementById('gameOverSound');
-    const levelUpSound = document.getElementById('levelUpSound');
-    const toggleSoundBtn = document.getElementById('toggleSound');
-    const startButton = document.getElementById('startButton');
+function toggleGame() {
+  if (!isPlaying) {
+    startGame();
+    startButton.textContent = 'Parar juego';
+    startButton.classList.add('parar');
+    isPlaying = true;
+  } else {
+    stopGame();
+    startButton.textContent = 'Iniciar juego';
+    startButton.classList.remove('parar');
+    isPlaying = false;
+  }
+}
 
-    function toggleGame() {
-      if (!isPlaying) {
-        startGame();
-        startButton.textContent = 'Parar juego';
-        startButton.classList.add('parar');
-        isPlaying = true;
-      } else {
-        stopGame();
-        startButton.textContent = 'Iniciar juego';
-        startButton.classList.remove('parar');
-        isPlaying = false;
-      }
+function startGame() {
+  score = 0; level = 1; time = 0; fallSpeed = 300;
+  clearInterval(fallInterval);
+  clearInterval(timeInterval);
+  createBoard();
+  updateUI();
+  updateBackgroundColor(level);
+  fallingPiece = null;
+  fallInterval = setInterval(gameLoop, fallSpeed);
+  timeInterval = setInterval(() => {
+    time++;
+    timerDisplay.textContent = `${time}s`;
+  }, 1000);
+}
+
+function stopGame() {
+  clearInterval(fallInterval);
+  clearInterval(timeInterval);
+  gameBoard.innerHTML = '';
+}
+
+function createBoard() {
+  gameBoard.innerHTML = '';
+  board = [];
+  for (let r = 0; r < rows; r++) {
+    const row = [];
+    for (let c = 0; c < columns; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      gameBoard.appendChild(cell);
+      row.push({ element: cell, piece: null });
     }
+    board.push(row);
+  }
+}
 
-    function startGame() {
-      score = 0; level = 1; time = 0; fallSpeed = 500;
-      clearInterval(fallInterval);
-      clearInterval(timeInterval);
-      createBoard();
-      updateUI();
-      updateBackgroundColor(level);
-      fallingPiece = null;
-      fallInterval = setInterval(gameLoop, fallSpeed);
-      timeInterval = setInterval(() => {
-        time++;
-        timerDisplay.textContent = `${time}s`;
-      }, 1000);
-    }
+function gameLoop() {
+  if (!fallingPiece) spawnPiece();
+  else movePieceDown();
+}
 
-    function stopGame() {
-      clearInterval(fallInterval);
-      clearInterval(timeInterval);
-      gameBoard.innerHTML = '';
-    }
+function spawnPiece() {
+  const col = Math.floor(columns / 2);
+  const type = pieceTypes[Math.floor(Math.random() * pieceTypes.length)];
+  if (board[0][col].piece) return gameOver();
+  fallingPiece = { row: 0, col, type };
+  updateBoard();
+}
 
-    function createBoard() {
-      gameBoard.innerHTML = '';
-      board = [];
-      for (let r = 0; r < rows; r++) {
-        const row = [];
-        for (let c = 0; c < columns; c++) {
-          const cell = document.createElement('div');
-          cell.className = 'cell';
-          gameBoard.appendChild(cell);
-          row.push({ element: cell, piece: null });
-        }
-        board.push(row);
-      }
-    }
+function movePieceDown() {
+  const { row, col } = fallingPiece;
+  if (row + 1 >= rows || board[row + 1][col].piece) {
+    board[row][col].piece = fallingPiece.type;
+    if (soundEnabled) fallSound.play();
+    fallingPiece = null;
+    checkMatches();
+    return;
+  }
+  fallingPiece.row++;
+  updateBoard();
+}
 
-    function gameLoop() {
-      if (!fallingPiece) spawnPiece();
-      else movePieceDown();
-    }
-
-    function spawnPiece() {
-      const col = Math.floor(columns / 2);
-      const type = pieceTypes[Math.floor(Math.random() * pieceTypes.length)];
-      if (board[0][col].piece) return gameOver();
-      fallingPiece = { row: 0, col, type };
-      updateBoard();
-    }
-
-    function movePieceDown() {
-      const { row, col } = fallingPiece;
-      if (row + 1 >= rows || board[row + 1][col].piece) {
-        board[row][col].piece = fallingPiece.type;
-        if (soundEnabled) fallSound.play();
-        fallingPiece = null;
-        checkMatches();
-        return;
-      }
-      fallingPiece.row++;
-      updateBoard();
-    }
-
-    function updateBoard() {
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < columns; c++) {
-          const cell = board[r][c].element;
-          const piece = board[r][c].piece;
-          cell.textContent = '';
-          cell.className = 'cell';
-          cell.style.backgroundColor = '#fff';
-          if (piece) {
-            cell.textContent = piece.symbol;
-            cell.classList.add('piece');
-            cell.style.backgroundColor = piece.color;
-          }
-        }
-      }
-      if (fallingPiece) {
-        const { row, col, type } = fallingPiece;
-        const cell = board[row][col].element;
-        cell.textContent = type.symbol;
+function updateBoard() {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < columns; c++) {
+      const cell = board[r][c].element;
+      const piece = board[r][c].piece;
+      cell.textContent = '';
+      cell.className = 'cell';
+      cell.style.backgroundColor = '#fff';
+      if (piece) {
+        cell.textContent = piece.symbol;
         cell.classList.add('piece');
-        cell.style.backgroundColor = type.color;
+        cell.style.backgroundColor = piece.color;
       }
-    }
-
-    function updateUI() {
-      scoreDisplay.textContent = score;
-      levelDisplay.textContent = level;
-    }
-
-    function checkMatches() {
-      let toRemove = [];
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < columns - 2; c++) {
-          const p1 = board[r][c].piece, p2 = board[r][c+1].piece, p3 = board[r][c+2].piece;
-          if (p1 && p2 && p3 && p1.symbol === p2.symbol && p2.symbol === p3.symbol)
-            toRemove.push([r, c], [r, c+1], [r, c+2]);
-        }
-      }
-      for (let c = 0; c < columns; c++) {
-        for (let r = 0; r < rows - 2; r++) {
-          const p1 = board[r][c].piece, p2 = board[r+1][c].piece, p3 = board[r+2][c].piece;
-          if (p1 && p2 && p3 && p1.symbol === p2.symbol && p2.symbol === p3.symbol)
-            toRemove.push([r, c], [r+1, c], [r+2, c]);
-        }
-      }
-      if (toRemove.length > 0) {
-        if (soundEnabled) matchSound.play();
-        let unique = [...new Set(toRemove.map(JSON.stringify))].map(JSON.parse);
-        unique.forEach(([r, c]) => { board[r][c].piece = null; });
-        score += unique.length * 10;
-        updateUI();
-        checkLevelUp();
-        setTimeout(() => { applyGravity(); updateBoard(); }, 200);
-      }
-    }
-
-    function applyGravity() {
-      for (let c = 0; c < columns; c++) {
-        for (let r = rows - 1; r >= 0; r--) {
-          if (!board[r][c].piece) {
-            for (let k = r - 1; k >= 0; k--) {
-              if (board[k][c].piece) {
-                board[r][c].piece = board[k][c].piece;
-                board[k][c].piece = null;
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    function checkLevelUp() {
-      let newLevel = Math.floor(score / 100) + 1;
-      if (newLevel > level) {
-        level = newLevel;
-        fallSpeed = Math.max(200, 400 - level * 10);
-        clearInterval(fallInterval);
-        fallInterval = setInterval(gameLoop, fallSpeed);
-        updateUI();
-        updateBackgroundColor(level);
-        showTrophy();
-        if (soundEnabled) levelUpSound.play();
-      }
-    }
-
-    function updateBackgroundColor(level) {
-      const colors = ['#e0f7fa','#a5d6a7','#f9f871','#ffe082','#ffab91','#ff7043','#ff5722','#f44336','#d32f2f','#b71c1c'];
-      document.body.style.backgroundColor = colors[Math.min(colors.length - 1, level - 1)];
-    }
-
-    function showTrophy() {
-      const trophy = document.getElementById('levelTrophy');
-      trophy.style.display = 'block';
-      trophy.style.opacity = '1';
-      setTimeout(() => { trophy.style.opacity = '0'; }, 1000);
-      setTimeout(() => { trophy.style.display = 'none'; }, 2000);
-    }
-
-    function gameOver() {
-      clearInterval(fallInterval);
-      clearInterval(timeInterval);
-      if (soundEnabled) gameOverSound.play();
-      alert(`¡Juego terminado! Tu puntuación: ${score} en ${time}s`);
-    }
-
-    toggleSoundBtn.addEventListener('click', () => {
-      soundEnabled = !soundEnabled;
-      toggleSoundBtn.textContent = soundEnabled ? '🔊 Sonido activado' : '🔇 Sonido desactivado';
-    });
-
-    document.addEventListener('keydown', e => {
-      if (!fallingPiece || !isPlaying) return;
-      if (e.key === 'ArrowLeft') {
-        const newCol = fallingPiece.col - 1;
-        if (newCol >= 0 && !board[fallingPiece.row][newCol].piece) {
-          fallingPiece.col = newCol;
-          updateBoard();
-        }
-      }
-      if (e.key === 'ArrowRight') {
-        const newCol = fallingPiece.col + 1;
-        if (newCol < columns && !board[fallingPiece.row][newCol].piece) {
-          fallingPiece.col = newCol;
-          updateBoard();
-        }
-      }
-      if (e.key === 'ArrowDown') movePieceDown();
-    });
-
-    document.body.addEventListener('click', () => {
-      [fallSound, matchSound, gameOverSound, levelUpSound].forEach(s => {
-        s.play().catch(() => {});
-        s.pause();
-        s.currentTime = 0;
-      });
-    }, { once: true });
-    function moveMobile(direction) {
-    if (!fallingPiece || !isPlaying) return;
-    if (direction === 'left') {
-      const newCol = fallingPiece.col - 1;
-      if (newCol >= 0 && !board[fallingPiece.row][newCol].piece) {
-        fallingPiece.col = newCol;
-        updateBoard();
-      }
-    }
-    if (direction === 'right') {
-      const newCol = fallingPiece.col + 1;
-      if (newCol < columns && !board[fallingPiece.row][newCol].piece) {
-        fallingPiece.col = newCol;
-        updateBoard();
-      }
-    }
-    if (direction === 'down') {
-      movePieceDown();
     }
   }
+  if (fallingPiece) {
+    const { row, col, type } = fallingPiece;
+    const cell = board[row][col].element;
+    cell.textContent = type.symbol;
+    cell.classList.add('piece');
+    cell.style.backgroundColor = type.color;
+  }
+}
 
-  if (window.innerWidth <= 768) {
+function updateUI() {
+  scoreDisplay.textContent = score;
+  levelDisplay.textContent = level;
+}
+
+function checkMatches() {
+  let toRemove = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < columns - 2; c++) {
+      const p1 = board[r][c].piece, p2 = board[r][c+1].piece, p3 = board[r][c+2].piece;
+      if (p1 && p2 && p3 && p1.symbol === p2.symbol && p2.symbol === p3.symbol)
+        toRemove.push([r, c], [r, c+1], [r, c+2]);
+    }
+  }
+  for (let c = 0; c < columns; c++) {
+    for (let r = 0; r < rows - 2; r++) {
+      const p1 = board[r][c].piece, p2 = board[r+1][c].piece, p3 = board[r+2][c].piece;
+      if (p1 && p2 && p3 && p1.symbol === p2.symbol && p2.symbol === p3.symbol)
+        toRemove.push([r, c], [r+1, c], [r+2, c]);
+    }
+  }
+  if (toRemove.length > 0) {
+    if (soundEnabled) matchSound.play();
+    let unique = [...new Set(toRemove.map(JSON.stringify))].map(JSON.parse);
+    unique.forEach(([r, c]) => { board[r][c].piece = null; });
+    score += unique.length * 10;
+    updateUI();
+    checkLevelUp();
+    setTimeout(() => { applyGravity(); updateBoard(); }, 200);
+  }
+}
+
+function applyGravity() {
+  for (let c = 0; c < columns; c++) {
+    for (let r = rows - 1; r >= 0; r--) {
+      if (!board[r][c].piece) {
+        for (let k = r - 1; k >= 0; k--) {
+          if (board[k][c].piece) {
+            board[r][c].piece = board[k][c].piece;
+            board[k][c].piece = null;
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+function checkLevelUp() {
+  let newLevel = Math.floor(score / 100) + 1;
+  if (newLevel > level) {
+    level = newLevel;
+
+    // 🧠 Velocidad ajustada: inicia en 300 ms, baja de 10 en 10 hasta 220, luego de 5 en 5 hasta 140
+    if (level <= 8) {
+      fallSpeed = 300 - level * 10;
+    } else {
+      fallSpeed = 220 - (level - 8) * 5;
+    }
+    fallSpeed = Math.max(140, fallSpeed);
+
+    clearInterval(fallInterval);
+    fallInterval = setInterval(gameLoop, fallSpeed);
+    updateUI();
+    updateBackgroundColor(level);
+    showTrophy();
+    if (soundEnabled) levelUpSound.play();
+  }
+}
+
+function updateBackgroundColor(level) {
+  const colors = ['#e0f7fa','#a5d6a7','#f9f871','#ffe082','#ffab91','#ff7043','#ff5722','#f44336','#d32f2f','#b71c1c'];
+  document.body.style.backgroundColor = colors[Math.min(colors.length - 1, level - 1)];
+}
+
+function showTrophy() {
+  const trophy = document.getElementById('levelTrophy');
+  trophy.style.display = 'block';
+  trophy.style.opacity = '1';
+  setTimeout(() => { trophy.style.opacity = '0'; }, 1000);
+  setTimeout(() => { trophy.style.display = 'none'; }, 2000);
+}
+
+function gameOver() {
+  clearInterval(fallInterval);
+  clearInterval(timeInterval);
+  if (soundEnabled) gameOverSound.play();
+  alert(`¡Juego terminado! Tu puntuación: ${score} en ${time}s`);
+}
+
+toggleSoundBtn.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  toggleSoundBtn.textContent = soundEnabled ? '🔊 Sonido activado' : '🔇 Sonido desactivado';
+});
+
+document.addEventListener('keydown', e => {
+  if (!fallingPiece || !isPlaying) return;
+  if (e.key === 'ArrowLeft') {
+    const newCol = fallingPiece.col - 1;
+    if (newCol >= 0 && !board[fallingPiece.row][newCol].piece) {
+      fallingPiece.col = newCol;
+      updateBoard();
+    }
+  }
+  if (e.key === 'ArrowRight') {
+    const newCol = fallingPiece.col + 1;
+    if (newCol < columns && !board[fallingPiece.row][newCol].piece) {
+      fallingPiece.col = newCol;
+      updateBoard();
+    }
+  }
+  if (e.key === 'ArrowDown') movePieceDown();
+});
+
+document.body.addEventListener('click', () => {
+  [fallSound, matchSound, gameOverSound, levelUpSound].forEach(s => {
+    s.play().catch(() => {});
+    s.pause();
+    s.currentTime = 0;
+  });
+}, { once: true });
+
+function moveMobile(direction) {
+  if (!fallingPiece || !isPlaying) return;
+  if (direction === 'left') {
+    const newCol = fallingPiece.col - 1;
+    if (newCol >= 0 && !board[fallingPiece.row][newCol].piece) {
+      fallingPiece.col = newCol;
+      updateBoard();
+    }
+  }
+  if (direction === 'right') {
+    const newCol = fallingPiece.col + 1;
+    if (newCol < columns && !board[fallingPiece.row][newCol].piece) {
+      fallingPiece.col = newCol;
+      updateBoard();
+    }
+  }
+  if (direction === 'down') {
+    movePieceDown();
+  }
+}
+
+if (window.innerWidth <= 768) {
   document.getElementById('mobileControls').style.display = 'flex';
 }
 </script>
